@@ -42,38 +42,38 @@ enum pvt_flags2 : uint8_t
 
 struct ubxNavPVT : ubxNavMsg
 {
-    public:
-        static const uint16_t class_id = 0x0701;
+    static const uint16_t class_id = 0x0701;
+    ubxNavPVT() : ubxNavMsg(ubxNavPVT::class_id) {};
 //      format      name            unit        description
-        uint16_t    year;       //  y           Year (UTC)
-        uint8_t     month;      //  month       Month, range 1..12 (UTC)
-        uint8_t     day;        //  day         Day of month, range 1..31 (UTC)
-        uint8_t     hour;       //  h           Hour of day, range 0..23 (UTC)
-        uint8_t     min;        //  min         Minute of hour, range 0..59 (UTC)
-        uint8_t     sec;        //  s           Seconds of minute, range 0..60 (UTC)
-        uint8_t     valid;      //  -           validity flags
-        uint32_t    tAcc;       //  ns          time estimate accuracy
-        int32_t     nano;       //  ns          fractional second
-        fixType_t   fixType;    //  -           GNSSfix type
-        uint8_t     flags;      //  -           Fix status flag
-        uint8_t     flags2;     //  -           additional flags
-        uint8_t     numSV;      //  -           number of satelites used
-        int32_t     lon;        // 1e-7 deg     longitude
-        int32_t     lat;        // 1e-7 deg     latitude
-        int32_t     height;     // mm           height above ellipsoid
-        int32_t     hMSL;       // mm           height above sea level
-        uint32_t    hAcc;       // mm           horizontal accuracy
-        uint32_t    vAcc;       // mm           vertical accuracy
-        int32_t     velN;       // mm/s         NED north velocity
-        int32_t     velE;       // mm/s         NED east velocity
-        int32_t     velD;       // mm/s         NED down velocity
-        int32_t     gSpeed;     // mm/s         Ground speed
-        int32_t     headMot;    // 1e-5 deg     heading of motion
-        uint32_t    sAcc;       // mm/s         speed accuracy esitmate
-        uint32_t    headAcc;    // 1e-5 deg     heading accuracy
-        uint16_t    pDOP;       // -            Position dop
-        uint8_t     reserved1[6];
-        int32_t     headVeh;    // 1e-5 deg     heading of vehicle 2D (deg)
-        int16_t     magDec;     // 1e-2 deg     Magnetic declination
-        uint16_t    magAcc;     // 1e-2 deg     Magnetic declination accuracy
+    uint16_t    year;       //  y           Year (UTC)
+    uint8_t     month;      //  month       Month, range 1..12 (UTC)
+    uint8_t     day;        //  day         Day of month, range 1..31 (UTC)
+    uint8_t     hour;       //  h           Hour of day, range 0..23 (UTC)
+    uint8_t     min;        //  min         Minute of hour, range 0..59 (UTC)
+    uint8_t     sec;        //  s           Seconds of minute, range 0..60 (UTC)
+    uint8_t     valid;      //  -           validity flags
+    uint32_t    tAcc;       //  ns          time estimate accuracy
+    int32_t     nano;       //  ns          fractional second
+    fixType_t   fixType;    //  -           GNSSfix type
+    uint8_t     flags;      //  -           Fix status flag
+    uint8_t     flags2;     //  -           additional flags
+    uint8_t     numSV;      //  -           number of satelites used
+    int32_t     lon;        // 1e-7 deg     longitude
+    int32_t     lat;        // 1e-7 deg     latitude
+    int32_t     height;     // mm           height above ellipsoid
+    int32_t     hMSL;       // mm           height above sea level
+    uint32_t    hAcc;       // mm           horizontal accuracy
+    uint32_t    vAcc;       // mm           vertical accuracy
+    int32_t     velN;       // mm/s         NED north velocity
+    int32_t     velE;       // mm/s         NED east velocity
+    int32_t     velD;       // mm/s         NED down velocity
+    int32_t     gSpeed;     // mm/s         Ground speed
+    int32_t     headMot;    // 1e-5 deg     heading of motion
+    uint32_t    sAcc;       // mm/s         speed accuracy esitmate
+    uint32_t    headAcc;    // 1e-5 deg     heading accuracy
+    uint16_t    pDOP;       // -            Position dop
+    uint8_t     reserved1[6];
+    int32_t     headVeh;    // 1e-5 deg     heading of vehicle 2D (deg)
+    int16_t     magDec;     // 1e-2 deg     Magnetic declination
+    uint16_t    magAcc;     // 1e-2 deg     Magnetic declination accuracy
 };

@@ -5,14 +5,14 @@
 
 struct ubxSat_t
 {
-//      format      name                    unit        description
-        uint8_t     gnssId;     //          -           gnss identifier
-        uint8_t     svId;       //          -           satelite identifier
-        uint8_t     cno;        //          dbHz        carrier to noise ratio
-        int8_t      elev;       //          deg         elevation
-        int16_t     azim;       //          deg         azimuth
-        int16_t     prRes;      //          m 1e-1      Pseudo range residual
-        uint32_t    flags;      //          -           Bitmask
+//  format      name                    unit        description
+    uint8_t     gnssId;     //          -           gnss identifier
+    uint8_t     svId;       //          -           satelite identifier
+    uint8_t     cno;        //          dbHz        carrier to noise ratio
+    int8_t      elev;       //          deg         elevation
+    int16_t     azim;       //          deg         azimuth
+    int16_t     prRes;      //          m 1e-1      Pseudo range residual
+    uint32_t    flags;      //          -           Bitmask
 };
 
 enum ubxSatFlags : uint32_t
@@ -36,11 +36,11 @@ enum ubxSatFlags : uint32_t
 
 struct ubxNavSat : ubxNavMsg
 {
-    public:
-        static const uint16_t class_id = 0x3501;
-//      format      name                    unit        description
-        uint8_t     version;            //  -           Message version (should be 1)
-        uint8_t     numSvs;             //  -           Number of satelites
-        uint8_t     reserved1[2];
-        ubxSat_t    Svs[max_satellites];//  -           Max number of satellites
+    static const uint16_t class_id = 0x3501;
+    ubxNavSat() : ubxNavMsg(ubxNavSat::class_id) {};
+//  format      name                    unit        description
+    uint8_t     version;            //  -           Message version (should be 1)
+    uint8_t     numSvs;             //  -           Number of satelites
+    uint8_t     reserved1[2];
+    ubxSat_t    Svs[max_satellites];//  -           Max number of satellites
 };

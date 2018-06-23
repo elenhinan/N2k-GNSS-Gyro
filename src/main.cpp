@@ -89,7 +89,7 @@ void setup()
   }
 
   // NMEA2000 setup
-  //NMEA2000.SetN2kCANSendFrameBufSize(200);
+  NMEA2000.SetN2kCANSendFrameBufSize(200);
   // Set Product information
   NMEA2000.SetProductInformation("00000001", // Manufacturer's Model serial code
                                  100, // Manufacturer's product code
@@ -163,10 +163,12 @@ void loop()
 
   NMEA2000.ParseMessages();
   ActisenseReader.ParseMessages();
-  
-  tN2kMsg N2kMsg;
-  if (ubxGNSS.ParseMessages(N2kMsg))
+  ubxGNSS.ParseMessages();
+  if(ubxGNSS.N2kMsgAvailable()) { // if N2kMsg available
+    tN2kMsg N2kMsg;
+    ubxGNSS.N2kMsgGet(N2kMsg);
     NMEA2000.SendMsg(N2kMsg);
+  }
 }
 
 void update_display(double heading, double roll, double pitch, bool valid)

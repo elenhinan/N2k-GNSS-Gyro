@@ -4,8 +4,8 @@
 #define UBLOX_TXD   1   // TX1
 
 #define DISP_CS     10
-#define DISP_DC     9
-#define DISP_RST    8
+#define DISP_DC     7
+#define DISP_RST    6
 #define DISP_SCK    14
 #define DISP_MOSI   11
 #define DISP_MISO   12

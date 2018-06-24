@@ -6,7 +6,6 @@
 #include <NMEA2000_CAN.h>  // This will automatically choose right CAN library and create suitable NMEA2000 object
 #include <N2kMessages.h>
 #include <ActisenseReader.h>
-//#include <Time.h>
 #include "sensors/GNSS/ubxGNSS.h"
 //#include "sensors/Gyro/bnoGyro.h"
 #include "pins.h"
@@ -18,7 +17,7 @@
 #define ActisenseBaud 115200
 #define UbloxUART     Serial1    // PCB port
 #define UbloxBaud     115200
-#define DebugUART     Serial
+#define DebugUART     Serial2
 #define DebugBaud     115200
 
 //#define UbxDirect

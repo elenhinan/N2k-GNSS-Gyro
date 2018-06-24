@@ -69,7 +69,8 @@ void setup()
     sensor_t sensor;
     bno.getSensor(&sensor);
     u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_profont10_tf);
+    //u8g2.setFont(u8g2_font_profont10_tf);
+    u8g2.setFont(u8g2_font_profont10_mf);
     u8g2.setCursor(0,10);
     u8g2.print  ("Sensor:       "); u8g2.println(sensor.name);
     u8g2.setCursor(0,20);
@@ -142,7 +143,7 @@ void loop()
   #endif
 
   uint32_t temp_time = micros();
-  if(temp_time >= last_update + 100000)
+  if((uint32_t)(temp_time - last_update) >= 100000)
   {
     last_update = temp_time;
     imu::Vector<3> euler = bno.getVector(bno.VECTOR_EULER);
@@ -151,14 +152,16 @@ void loop()
     double pitch = euler.z();  
     bool valid = bno.isFullyCalibrated();
    
-    update_display(heading, roll, pitch, valid);
+   // update_display(heading, roll, pitch, valid);
 
     // send nmea2k msg
     tN2kMsg N2kMsg;
     SetN2kAttitude(N2kMsg, 1, 0, DegToRad(pitch), DegToRad(roll));
     NMEA2000.SendMsg(N2kMsg);
+    N2kMsg.Clear();
     SetN2kMagneticHeading(N2kMsg, 1, DegToRad(heading), N2kDoubleNA, N2kDoubleNA); // deviation - get from ardupilot code
     NMEA2000.SendMsg(N2kMsg);
+    //SetN2kRateOfTurn
   }
 
   NMEA2000.ParseMessages();
@@ -173,37 +176,37 @@ void loop()
 
 void update_display(double heading, double roll, double pitch, bool valid)
 {
-  digitalWrite(LED_BUILTIN, digitalRead(LED_BUILTIN)==0);
+  digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_profont10_tf);
-  u8g2.setCursor(0,8);
-  u8g2.print("pitch:   ");
-  u8g2.print(pitch, 1);
-  u8g2.print("\xB0");
-  u8g2.setCursor(0,16);
-  u8g2.print("roll:    ");
-  u8g2.print(roll, 1);
-  u8g2.print("\xB0");
-  u8g2.setCursor(0,24);
-  u8g2.print("heading: ");
-  u8g2.print(heading, 1);
-  u8g2.print("\xB0");
-  u8g2.setCursor(0,32);
-  u8g2.print("valid:   ");
-  u8g2.print(valid);
-  u8g2.setCursor(0,40);
-  double lat = ubxGNSS.latitude();
-  char ns = lat>0?'N':'S';
-  double lon = ubxGNSS.longitude();
-  char ew = lon>0?'E':'W';
-  u8g2.print("lat:     ");
-  u8g2.print(abs(lat), 5);
-  u8g2.print("\xB0 ");;u8g2.print(ns);
-  u8g2.setCursor(0,48);
-  u8g2.print("lon:     ");
-  u8g2.print(abs(lon), 5);
-  u8g2.print("\xB0 ");u8g2.print(ew);
-  u8g2.setCursor(0,56);
+  // u8g2.setFont(u8g2_font_profont10_tf);
+  // u8g2.setCursor(0,8);
+  // u8g2.print("pitch:   ");
+  // u8g2.print(pitch, 1);
+  // u8g2.print("\xB0");
+  // u8g2.setCursor(0,16);
+  // u8g2.print("roll:    ");
+  // u8g2.print(roll, 1);
+  // u8g2.print("\xB0");
+  // u8g2.setCursor(0,24);
+  // u8g2.print("heading: ");
+  // u8g2.print(heading, 1);
+  // u8g2.print("\xB0");
+  // u8g2.setCursor(0,32);
+  // u8g2.print("valid:   ");
+  // u8g2.print(valid);
+  // u8g2.setCursor(0,40);
+  // double lat = ubxGNSS.latitude();
+  // char ns = lat>0?'N':'S';
+  // double lon = ubxGNSS.longitude();
+  // char ew = lon>0?'E':'W';
+  // u8g2.print("lat:     ");
+  // u8g2.print(abs(lat), 5);
+  // u8g2.print("\xB0 ");;u8g2.print(ns);
+  // u8g2.setCursor(0,48);
+  // u8g2.print("lon:     ");
+  // u8g2.print(abs(lon), 5);
+  // u8g2.print("\xB0 ");u8g2.print(ew);
+  
   u8g2.sendBuffer();
 }
 

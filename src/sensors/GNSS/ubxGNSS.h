@@ -10,7 +10,12 @@
 #include "ubxNavDop.h"
 #include "ubxNavEOE.h"
 
-#define dim(x) (sizeof(x) / sizeof((x)[0]))
+// config
+#define slowRate    1 // Hz
+#define rapidRate   5 // Hz
+
+// defines
+#define slowRatio   (rapidRate/slowRate)
 
 class uBloxGNSS {
 private:
@@ -21,20 +26,22 @@ private:
   uint16_t _rx_length;
   uint16_t _rx_checksum;
   ubxNavMsg* _rx_NavMsg;
-  enum UBXState {
+  enum UBXState : uint8_t {
+    UBX_RX_CLEANUP,
     UBX_RX_HEADER,
     UBX_RX_CLASSID,
     UBX_RX_PAYLOAD,
     UBX_RX_CHECKSUM,
-    UBX_RX_NEWEPOCH,
-    UBX_RX_CLEANUP
+    UBX_RX_NEWEPOCH
   };
   UBXState _rx_state;
-  enum N2KState {
+  enum N2KState : uint8_t  {
     N2K_TX_IDLE,
     N2K_TX_SLOW,
     N2K_TX_GNSS,
     N2K_TX_SATINFO,
+    N2K_TX_SYSTIME,
+    N2K_TX_DOPDATA,
     N2K_TX_RAPID,
     N2K_TX_COGSOGRAPID,
     N2K_TX_LATLONRAPID
@@ -50,17 +57,19 @@ private:
   //                         &_packet_ubxNavDOP,
   //                         &_packet_ubxNavEOE,
   //                       };
-  Stream *_ubxStream;
+  HardwareSerial *_ubxStream;
   Stream *_debugStream;
-  bool _newEpoch;
-  uint8_t _SlowSID;
+  uint32_t _serialActivityMillis;
+  uint32_t _serialActivityTimeout;
+  uint8_t _SlowTimer;
   uint8_t _SlowIntervall;
-  uint8_t _RapidSID;
-  uint8_t _RapidIntervall;
+  int8_t _N2kSatInfoCount;
+  double _secondsSinceMidnight;
+  uint16_t _daysSince1970;
 
 private:
   static unsigned char _UbxToN2kSvStatus(uint32_t flags);
-  void _ChecksumCompute(uint8_t* data, uint16_t n);
+  void _ChecksumCompute(uint16_t &checksum, uint8_t* data, uint16_t n);
   bool _Read(uint8_t &data);
   bool _Read(uint16_t &data);
   bool _Read(uint32_t &data);
@@ -68,17 +77,20 @@ private:
   bool _Read(uint8_t *data, uint16_t bytes);
   bool _Skip(uint16_t bytes);
   bool _FindHeader();
-  void _ReadNavPvt();
-  void _ReadNavSat();
+  void _CalculateTime();
+  //void _CalculateVariation();
   bool _CreateN2kSatInfo(tN2kMsg &N2kMsg);
   bool _CreateN2kGNSS(tN2kMsg &N2kMsg);
   bool _CreateN2kCOGSOGRapid(tN2kMsg &N2kMsg);
   bool _CreateN2kLatLonRapid(tN2kMsg &N2kMsg);
+  bool _CreateN2kSystemTime(tN2kMsg &N2kMsg);
+  bool _CreateN2kGNSSDOPData(tN2kMsg &N2kMsg);
+  //bool _CreateN2kMagneticVariation(tN2kMsg &N2kMsg);
 
 public:
   uBloxGNSS();
   void Setup();
-  void SetUbxStream(Stream* stream) { _ubxStream=stream; }
+  void SetUbxStream(HardwareSerial* stream) { _ubxStream=stream; }
   void SetDebugStream(Stream* stream) { _debugStream=stream; }
   void ParseMessages();
   bool N2kMsgAvailable();

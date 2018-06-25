@@ -42,6 +42,7 @@ private:
     N2K_TX_SATINFO,
     N2K_TX_SYSTIME,
     N2K_TX_DOPDATA,
+    N2K_TX_MAGVAR,
     N2K_TX_RAPID,
     N2K_TX_COGSOGRAPID,
     N2K_TX_LATLONRAPID
@@ -66,6 +67,8 @@ private:
   int8_t _N2kSatInfoCount;
   double _secondsSinceMidnight;
   uint16_t _daysSince1970;
+  double _decimalYear;
+  double _declination;
 
 private:
   static unsigned char _UbxToN2kSvStatus(uint32_t flags);
@@ -85,7 +88,7 @@ private:
   bool _CreateN2kLatLonRapid(tN2kMsg &N2kMsg);
   bool _CreateN2kSystemTime(tN2kMsg &N2kMsg);
   bool _CreateN2kGNSSDOPData(tN2kMsg &N2kMsg);
-  //bool _CreateN2kMagneticVariation(tN2kMsg &N2kMsg);
+  bool _CreateN2kMagneticVariation(tN2kMsg &N2kMsg);
 
 public:
   uBloxGNSS();
@@ -97,4 +100,7 @@ public:
   void N2kMsgGet(tN2kMsg &N2kMsg);
   double latitude() { return (double)_packet_ubxNavPVT.lat * 1e-7; }
   double longitude() { return (double)_packet_ubxNavPVT.lon * 1e-7; }
+  double altitude() { return (double)_packet_ubxNavPVT.hMSL * 1e-3; }
+  double declination() { return _declination; }
+  double decYear() { return _decimalYear; }
 };

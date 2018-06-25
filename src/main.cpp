@@ -152,7 +152,7 @@ void loop()
     double pitch = euler.z();  
     bool valid = bno.isFullyCalibrated();
    
-   // update_display(heading, roll, pitch, valid);
+    update_display(heading, roll, pitch, valid);
 
     // send nmea2k msg
     tN2kMsg N2kMsg;
@@ -174,8 +174,11 @@ void loop()
   }
 }
 
+uint8_t disp_c = 1;
 void update_display(double heading, double roll, double pitch, bool valid)
 {
+  if(disp_c++ != 0)
+    return;
   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   u8g2.clearBuffer();
   // u8g2.setFont(u8g2_font_profont10_tf);
@@ -195,18 +198,26 @@ void update_display(double heading, double roll, double pitch, bool valid)
   // u8g2.print("valid:   ");
   // u8g2.print(valid);
   // u8g2.setCursor(0,40);
-  // double lat = ubxGNSS.latitude();
-  // char ns = lat>0?'N':'S';
-  // double lon = ubxGNSS.longitude();
-  // char ew = lon>0?'E':'W';
-  // u8g2.print("lat:     ");
-  // u8g2.print(abs(lat), 5);
-  // u8g2.print("\xB0 ");;u8g2.print(ns);
-  // u8g2.setCursor(0,48);
-  // u8g2.print("lon:     ");
-  // u8g2.print(abs(lon), 5);
-  // u8g2.print("\xB0 ");u8g2.print(ew);
-  
+  double lat = ubxGNSS.latitude();
+  char ns = lat>0?'N':'S';
+  double lon = ubxGNSS.longitude();
+  char ew = lon>0?'E':'W';
+  u8g2.setCursor(0,16);
+  u8g2.print("alt:     ");
+  u8g2.print(ubxGNSS.altitude(), 1);
+  u8g2.setCursor(0,24);
+  u8g2.print("lat:     ");
+  u8g2.print(abs(lat), 5);
+  u8g2.print("\xB0 ");
+  u8g2.print(ns);
+  u8g2.setCursor(0,32);
+  u8g2.print("lon:     ");
+  u8g2.print(abs(lon), 5);
+  u8g2.print("\xB0 ");
+  u8g2.print(ew);
+  u8g2.setCursor(0,40);
+  u8g2.print("dec:     ");
+  u8g2.print(ubxGNSS.declination(), 3);
   u8g2.sendBuffer();
 }
 

@@ -1,4 +1,5 @@
 #include "ubxGNSS.h"
+#include "tools/MagneticVariation.h"
 
 uBloxGNSS::uBloxGNSS() :
   _SID(0),
@@ -8,7 +9,8 @@ uBloxGNSS::uBloxGNSS() :
   _n2k_state(N2K_TX_IDLE),
   _serialActivityTimeout(50),
   _SlowTimer(slowRatio),
-  _SlowIntervall(slowRatio)
+  _SlowIntervall(slowRatio),
+  _declination(0)
 {
   _debugStream = NULL;
   _serialActivityMillis = millis();
@@ -196,7 +198,8 @@ void uBloxGNSS::N2kMsgGet(tN2kMsg &N2kMsg) {
     case N2K_TX_GNSS:         _CreateN2kGNSS(N2kMsg); _n2k_state = N2K_TX_SATINFO; break;
     case N2K_TX_SATINFO:      _CreateN2kSatInfo(N2kMsg); _n2k_state = N2K_TX_SYSTIME; break;
     case N2K_TX_SYSTIME:      _CreateN2kSystemTime(N2kMsg); _n2k_state = N2K_TX_DOPDATA; break;
-    case N2K_TX_DOPDATA:      _CreateN2kGNSSDOPData(N2kMsg); _n2k_state = N2K_TX_LATLONRAPID; break;
+    case N2K_TX_DOPDATA:      _CreateN2kGNSSDOPData(N2kMsg); _n2k_state = N2K_TX_MAGVAR; break;
+    case N2K_TX_MAGVAR:       _CreateN2kMagneticVariation(N2kMsg); _n2k_state = N2K_TX_LATLONRAPID; break;
     case N2K_TX_RAPID:
     case N2K_TX_LATLONRAPID:  _CreateN2kLatLonRapid(N2kMsg); _n2k_state = N2K_TX_COGSOGRAPID; break;
     case N2K_TX_COGSOGRAPID:  _CreateN2kCOGSOGRapid(N2kMsg); _n2k_state = N2K_TX_IDLE; break;
@@ -233,18 +236,25 @@ void uBloxGNSS::_CalculateTime() {
   // convert from GNSS time to NMEA2k time
   tmElements_t tm;
   tm.Year = CalendarYrToTm(_packet_ubxNavPVT.year);
-  tm.Month = _packet_ubxNavPVT.month;
-  tm.Day = _packet_ubxNavPVT.day;
+  tm.Month = 1;
+  tm.Day = 1;
   tm.Hour = 0;
   tm.Minute = 0;
   tm.Second = 0;
+  // create time_t for 01.01.YYYY 00:00:00
+  time_t time_year = makeTime(tm);
+  tm.Month = _packet_ubxNavPVT.month;
+  tm.Day = _packet_ubxNavPVT.day;
+  // create time_t for DD.MM.YYYY 00:00:00
   time_t time_midnight = makeTime(tm);
   tm.Hour = _packet_ubxNavPVT.hour;
   tm.Minute = _packet_ubxNavPVT.min;
   tm.Second = _packet_ubxNavPVT.sec;
+  // create time_t form DD.MM.YYYY HH:MM:SS
   time_t gnss_time = makeTime(tm);
   _daysSince1970 = time_midnight / SECS_PER_DAY;
   _secondsSinceMidnight = (double)(gnss_time-time_midnight) + _packet_ubxNavPVT.nano * 1e-6;
+  _decimalYear = (double)_packet_ubxNavPVT.year + (double)(gnss_time - time_year) / SECS_PER_YEAR;
 }
 
 // void uBloxGNSS::_CalculateVariation() {
@@ -318,9 +328,12 @@ bool uBloxGNSS::_CreateN2kGNSSDOPData(tN2kMsg &N2kMsg) {
       (double)_packet_ubxNavDOP.vDOP * 1e-2,
       (double)_packet_ubxNavDOP.tDOP * 1e-2
     );
+  return true;
 }
 
-// bool uBloxGNSS::_CreateN2kMagneticVariation(tN2kMsg &N2kMsg) {
-//   double variation;
-//   SetN2kMagneticVariation(N2kMsg, _SID, N2kmagvar_WMM2015, _daysSince1970, variation);
-// }
+bool uBloxGNSS::_CreateN2kMagneticVariation(tN2kMsg &N2kMsg) {
+  double dip, ti, gv;
+  bool valid = MagneticVariation(altitude(), latitude(), longitude(), _decimalYear, _declination, dip, ti, gv);
+  SetN2kMagneticVariation(N2kMsg, _SID, N2kmagvar_WMM2015, _daysSince1970, DEG_TO_RAD * _declination);
+  return true;
+}

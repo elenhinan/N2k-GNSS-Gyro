@@ -3,16 +3,17 @@ Arduino based NMEA2000 Gyrocompass, Attitude and GNSS/GPS running on teensy 3.2
 
 
 Working PGN's:
-* PGN127258 - SatInfo
-* PGN129029 - GNSS Position etc.
-* PGN129026 - COGSOGRapid
-* PGN129025 - LatLonRapid
-* PGN126992 - SystemTime
-* PGN129539 - GNSSDOPData
-* PGN127258 - MagneticVariation
-Sort of working PGN's but missing calibration:
-* PGN127257 - Attitude
-* PGN127250 - MagneticHeading / TrueHeading (with WMM2015 modeling)
+* PGN127258 -  1 Hz - SatInfo (max 16 satelites due to lack of support for ISO 11783 multi-packet)
+* PGN129029 -  1 Hz - GNSS Position etc.
+* PGN126992 -  1 Hz - SystemTime
+* PGN129539 -  1 Hz - GNSSDOPData
+* PGN127258 -  1 Hz - MagneticVariation
+* PGN129026 -  5 Hz - COGSOGRapid
+* PGN129025 -  5 Hz - LatLonRapid
+
+Sort of working PGN's but missing calibration and need restructuring of code:
+* PGN127257 - 10 Hz - Attitude
+* PGN127250 - 10 Hz - MagneticHeading / TrueHeading (with WMM2015 modeling)
 
 
 Hardware needed:

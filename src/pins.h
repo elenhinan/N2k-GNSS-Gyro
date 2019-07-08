@@ -13,6 +13,11 @@
 #define CAN_TX      3
 #define CAN_RX      4
 
+#define BT_STATE     6
+#define BT_EN        5
+#define BT_RX        7
+#define BT_TX        8
+
 #define GYRO_SDA    18  // SDA0
 #define GYRO_SCL    19  // SCL0
 #define GYRO_INT    20

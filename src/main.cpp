@@ -1,12 +1,18 @@
 #include "main.h"
 
-U8G2_SH1106_128X64_NONAME_F_4W_HW_SPI u8g2(U8G2_R0, DISP_CS, DISP_DC, DISP_RST);
+//U8G2_SH1106_128X64_NONAME_F_4W_HW_SPI u8g2(U8G2_R0, DISP_CS, DISP_DC, DISP_RST);
 uBloxGNSS ubxGNSS;
 //IMU gyro;
-Adafruit_BNO055 bno = Adafruit_BNO055(BNO055_ID, BNO055_ADDRESS_A);
+//Adafruit_BNO055 bno = Adafruit_BNO055(BNO055_ID, BNO055_ADDRESS_A);
+
+// todo: save nmea2k address is changed, restore on startup
+// todo: send product information? probably sent at startup?
 
 void setup()
 {
+  pinMode(BT_EN, OUTPUT);
+  digitalWrite(BT_EN, HIGH);
+
   ActisenseUART.begin(ActisenseBaud);
   UbloxUART.begin(UbloxBaud);
   DebugUART.begin(DebugBaud);
@@ -25,14 +31,14 @@ void setup()
   SPI.setMISO(DISP_MISO);
   
   // Setup OLED
-  u8g2.begin();
-  u8g2.clearBuffer();
-  u8g2.sendBuffer();
+  //u8g2.begin();
+  //u8g2.clearBuffer();
+  //u8g2.sendBuffer();
   
   // Setup IMU
-  pinMode(GYRO_RST, OUTPUT);
-  digitalWrite(GYRO_RST, HIGH);
-  Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_EXT, 400000L);
+  // pinMode(GYRO_RST, OUTPUT);
+  // digitalWrite(GYRO_RST, HIGH);
+  // Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_EXT, 400000L);
   // #define axis_x= 0b00;
   // #define axis_y= 0b01;
   // #define axis_z= 0b10;
@@ -56,39 +62,39 @@ void setup()
   //     u8g2.sendBuffer();
   //   }
   // }
-  // delay(5000);
+  //SetupHC05();
+  delay(5000);
   //gyro.setup();
   
-  if(!bno.begin()) {
-    u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_ncenB14_tr);
-    u8g2.drawStr(0,20,"Gyro Error!");
-    u8g2.sendBuffer();
-    delay(1000);
-  } else {
-    sensor_t sensor;
-    bno.getSensor(&sensor);
-    u8g2.clearBuffer();
-    //u8g2.setFont(u8g2_font_profont10_tf);
-    u8g2.setFont(u8g2_font_profont10_mf);
-    u8g2.setCursor(0,10);
-    u8g2.print  ("Sensor:       "); u8g2.println(sensor.name);
-    u8g2.setCursor(0,20);
-    u8g2.print  ("Driver Ver:   "); u8g2.println(sensor.version);
-    u8g2.setCursor(0,30);
-    u8g2.print  ("Unique ID:    "); u8g2.println(sensor.sensor_id);
-    u8g2.setCursor(0,40);
-    u8g2.print  ("Resolution:   "); u8g2.print(sensor.resolution); u8g2.println(" xxx");
-    u8g2.sendBuffer();
-    delay(5000);
-    bno.setExtCrystalUse(false);
-    bno.setAxisRemap(bno.REMAP_CONFIG_P5);
-    bno.setAxisSign(bno.REMAP_SIGN_P5);
-    //bno.setAxisRemap(remap);
+  // if(!bno.begin()) {
+  //   u8g2.clearBuffer();
+  //   u8g2.setFont(u8g2_font_ncenB14_tr);
+  //   u8g2.drawStr(0,20,"Gyro Error!");
+  //   u8g2.sendBuffer();
+  //   delay(1000);
+  // } else {
+  //   sensor_t sensor;
+  //   bno.getSensor(&sensor);
+  //   u8g2.clearBuffer();
+  //   //u8g2.setFont(u8g2_font_profont10_tf);
+  //   u8g2.setFont(u8g2_font_profont10_mf);
+  //   u8g2.setCursor(0,10);
+  //   u8g2.print  ("Sensor:       "); u8g2.println(sensor.name);
+  //   u8g2.setCursor(0,20);
+  //   u8g2.print  ("Driver Ver:   "); u8g2.println(sensor.version);
+  //   u8g2.setCursor(0,30);
+  //   u8g2.print  ("Unique ID:    "); u8g2.println(sensor.sensor_id);
+  //   u8g2.setCursor(0,40);
+  //   u8g2.print  ("Resolution:   "); u8g2.print(sensor.resolution); u8g2.println(" xxx");
+  //   u8g2.sendBuffer();
+  //   delay(5000);
+  //   bno.setExtCrystalUse(false);
+  //   bno.setAxisRemap(bno.REMAP_CONFIG_P5);
+  //   bno.setAxisSign(bno.REMAP_SIGN_P5);
+  //   //bno.setAxisRemap(remap);
+  // }
 
-    last_update = micros();
-  }
-
+  last_update = micros();
   // NMEA2000 setup
   NMEA2000.SetN2kCANSendFrameBufSize(200);
   // Set Product information
@@ -130,6 +136,34 @@ void HandleStreamN2kMsg(const tN2kMsg &N2kMsg) {
   NMEA2000.SendMsg(N2kMsg,-1);
 }
 
+void SetupHC05() {
+  delay(5000);
+  digitalWrite(LED_BUILTIN, HIGH);
+  pinMode(BT_EN, OUTPUT);
+  pinMode(BT_STATE, INPUT);
+  digitalWrite(BT_EN, LOW);
+  BTSerial.begin(38400);
+  delay(10000);
+  digitalWrite(BT_EN, HIGH);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(1000);
+  BTSerial.print("AT+NAME=");
+  BTSerial.print(BTName);
+  BTSerial.print("\r\n");
+  BTSerial.print("AT+PSWD=\"");
+  BTSerial.print(BTPin);
+  BTSerial.print("\"\r\n");
+  BTSerial.print("AT+UART=");
+  BTSerial.print(BTBaud);
+  BTSerial.print(",1,0\r\n");
+  digitalWrite(BT_EN, LOW);
+  digitalWrite(LED_BUILTIN, HIGH);
+  while(true) {
+    
+  }
+}
+
+
 void loop()
 {
   #ifdef UbxDirect
@@ -146,22 +180,23 @@ void loop()
   if((uint32_t)(temp_time - last_update) >= 100000)
   {
     last_update = temp_time;
-    imu::Vector<3> euler = bno.getVector(bno.VECTOR_EULER);
-    double heading = euler.x();
-    double roll = euler.y();
-    double pitch = euler.z();  
-    bool valid = bno.isFullyCalibrated();
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  //   imu::Vector<3> euler = bno.getVector(bno.VECTOR_EULER);
+  //   double heading = euler.x();
+  //   double roll = euler.y();
+  //   double pitch = euler.z();  
+  //   bool valid = bno.isFullyCalibrated();
    
-    update_display(heading, roll, pitch, valid);
+  //   update_display(heading, roll, pitch, valid);
 
-    // send nmea2k msg
-    tN2kMsg N2kMsg;
-    SetN2kAttitude(N2kMsg, 1, 0, DegToRad(pitch), DegToRad(roll));
-    NMEA2000.SendMsg(N2kMsg);
-    N2kMsg.Clear();
-    SetN2kMagneticHeading(N2kMsg, 1, DegToRad(heading), N2kDoubleNA, N2kDoubleNA); // deviation - get from ardupilot code
-    NMEA2000.SendMsg(N2kMsg);
-    //SetN2kRateOfTurn
+  //   // send nmea2k msg
+  //   tN2kMsg N2kMsg;
+  //   SetN2kAttitude(N2kMsg, 1, 0, DegToRad(pitch), DegToRad(roll));
+  //   NMEA2000.SendMsg(N2kMsg);
+  //   //N2kMsg.Clear();
+  //   //SetN2kMagneticHeading(N2kMsg, 1, DegToRad(heading), N2kDoubleNA, N2kDoubleNA); // deviation - get from ardupilot code
+  //   //NMEA2000.SendMsg(N2kMsg);
+  //   //SetN2kRateOfTurn
   }
 
   NMEA2000.ParseMessages();
@@ -174,83 +209,57 @@ void loop()
   }
 }
 
-uint8_t disp_c = 1;
-void update_display(double heading, double roll, double pitch, bool valid)
-{
-  if(disp_c++ != 0)
-    return;
-  digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-  u8g2.clearBuffer();
-  // u8g2.setFont(u8g2_font_profont10_tf);
-  // u8g2.setCursor(0,8);
-  // u8g2.print("pitch:   ");
-  // u8g2.print(pitch, 1);
-  // u8g2.print("\xB0");
-  // u8g2.setCursor(0,16);
-  // u8g2.print("roll:    ");
-  // u8g2.print(roll, 1);
-  // u8g2.print("\xB0");
-  // u8g2.setCursor(0,24);
-  // u8g2.print("heading: ");
-  // u8g2.print(heading, 1);
-  // u8g2.print("\xB0");
-  // u8g2.setCursor(0,32);
-  // u8g2.print("valid:   ");
-  // u8g2.print(valid);
-  // u8g2.setCursor(0,40);
-  double lat = ubxGNSS.latitude();
-  char ns = lat>0?'N':'S';
-  double lon = ubxGNSS.longitude();
-  char ew = lon>0?'E':'W';
-  u8g2.setCursor(0,16);
-  u8g2.print("alt:     ");
-  u8g2.print(ubxGNSS.altitude(), 1);
-  u8g2.setCursor(0,24);
-  u8g2.print("lat:     ");
-  u8g2.print(abs(lat), 5);
-  u8g2.print("\xB0 ");
-  u8g2.print(ns);
-  u8g2.setCursor(0,32);
-  u8g2.print("lon:     ");
-  u8g2.print(abs(lon), 5);
-  u8g2.print("\xB0 ");
-  u8g2.print(ew);
-  u8g2.setCursor(0,40);
-  u8g2.print("dec:     ");
-  u8g2.print(ubxGNSS.declination(), 3);
-  u8g2.sendBuffer();
-}
-
-void sendstuff()
-{
-  //SetN2kSystemTime (126992)
-  //
-  // GGA,GLL and GSA -> 126992. 129025, 129029, 129033, 129539
-  // GSV -> 129540
-  // HDG -> 127250
-  // ROT -> 127251
-  // RMC -Z 126992,127250,127258,129025,129026,129029,129033
-  // VTG -> 129026
-  // Vessel Heading
-  // Angles should be in radians
-  //SetN2kPGN127250
-  // Rate of turn
-  // Angles should be in radians
-  //SetN2kPGN127251
-  // GNSS Position Data
-  //SetN2kPGN129029
-  // https://github.com/tkurki/navgauge/wiki/Global-Navigation-Satellite-System-(gnss)-Object ?
-}
-/*
-void PassThruMode()
-{
-  while(ubxSerial.available())
-  {
-    Terminal.write(ubxSerial.read());
-  }
-  while(Terminal.available())
-  {
-    ubxSerial.write(Terminal.read());
-  }
-}
-*/
+// uint8_t disp_c = 10;
+// void update_display(double heading, double roll, double pitch, bool valid)
+// {
+//   if(disp_c-- != 0)
+//     return;
+//   disp_c = 10;
+//   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+//   u8g2.clearBuffer();
+//   u8g2.setFont(u8g2_font_profont10_tf);
+//   u8g2.setCursor(0,8);
+//   u8g2.print("ptch: ");
+//   u8g2.print(pitch, 1);
+//   u8g2.print("\xB0");
+//   u8g2.setCursor(0,16);
+//   u8g2.print("roll: ");
+//   u8g2.print(roll, 1);
+//   u8g2.print("\xB0");
+//   u8g2.setCursor(0,24);
+//   u8g2.print("hdng: ");
+//   u8g2.print(heading, 1);
+//   u8g2.print("\xB0");
+//   u8g2.setCursor(0,32);
+//   u8g2.print("qual: ");
+//   uint8_t system, gyro, accel, mag;
+//   system = gyro = accel = mag = 0;
+//   bno.getCalibration(&system, &gyro, &accel, &mag);
+//   u8g2.print(system);
+//   u8g2.print(gyro);
+//   u8g2.print(accel);
+//   u8g2.print(mag);
+  
+//   double lat = ubxGNSS.latitude();
+//   char ns = lat>0?'N':'S';
+//   double lon = ubxGNSS.longitude();
+//   char ew = lon>0?'E':'W';
+//   u8g2.setCursor(64,8);
+//   u8g2.print("alt: ");
+//   u8g2.print(ubxGNSS.altitude(), 1);
+//   u8g2.setCursor(64,16);
+//   u8g2.print("lat: ");
+//   u8g2.print(abs(lat), 4);
+//   u8g2.print("\xB0");
+//   u8g2.print(ns);
+//   u8g2.setCursor(64,24);
+//   u8g2.print("lon: ");
+//   u8g2.print(abs(lon), 4);
+//   u8g2.print("\xB0");
+//   u8g2.print(ew);
+//   u8g2.setCursor(64,32);
+//   u8g2.print("dec: ");
+//   u8g2.print(ubxGNSS.declination(), 1);
+//   u8g2.print("\xB0");
+//   u8g2.sendBuffer();
+// }

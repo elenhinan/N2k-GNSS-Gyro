@@ -2,23 +2,27 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <i2c_t3.h>
-#include <U8g2lib.h>
+//#include <U8g2lib.h>
 #include <NMEA2000_CAN.h>  // This will automatically choose right CAN library and create suitable NMEA2000 object
 #include <N2kMessages.h>
 #include <ActisenseReader.h>
 #include "sensors/GNSS/ubxGNSS.h"
 //#include "sensors/Gyro/bnoGyro.h"
 #include "pins.h"
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
+//#include <Adafruit_Sensor.h>
+//#include <Adafruit_BNO055.h>
 //#include "imu.h"
 
-#define ActisenseUART Serial     // Programming port?
+#define ActisenseUART Serial
 #define ActisenseBaud 115200
-#define UbloxUART     Serial1    // PCB port
+#define UbloxUART     Serial1
 #define UbloxBaud     115200
 #define DebugUART     Serial2
 #define DebugBaud     115200
+#define BTSerial      Serial3
+#define BTName        "N2kGateway"
+#define BTPin         "1498"
+#define BTBaud        ActisenseBaud
 
 //#define UbxDirect
 // List here messages your device will transmit.
@@ -29,10 +33,11 @@ const unsigned long TransmitMessages[] PROGMEM={130310L,130311L,130312L,0};
 
 tActisenseReader ActisenseReader;
 
-void update_display(double heading, double roll, double pitch, bool valid);
+//void update_display(double heading, double roll, double pitch, bool valid);
 
 void HandleStreamN2kMsg(const tN2kMsg &N2kMsg);
 
+//void SetupHC05();
 //void PassThruMode();
 
 // void SetN2kPGN129029();

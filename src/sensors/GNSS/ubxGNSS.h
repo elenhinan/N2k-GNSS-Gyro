@@ -17,6 +17,16 @@
 // defines
 #define slowRatio   (rapidRate/slowRate)
 
+struct ubxGNSS_settings_t {
+  uint16_t _interval_LATLONRAPID = 1;
+  uint16_t _interval_COGSOGRAPID = 1;
+  uint16_t _interval_GNSS = 25;
+  uint16_t _interval_SATINFO = 25;
+  uint16_t _interval_SYSTIME = 5;
+  uint16_t _interval_DOPDATA = 25;
+  uint16_t _interval_MAGVAR = 300;
+};
+
 class uBloxGNSS {
 private:
   uint8_t _SID;

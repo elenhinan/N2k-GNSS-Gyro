@@ -193,6 +193,7 @@ void uBloxGNSS::ParseMessages() {
 }
 
 void uBloxGNSS::N2kMsgGet(tN2kMsg &N2kMsg) {
+  // insert if statements to break if successfull, if not go to next
   switch(_n2k_state) {
     case N2K_TX_SLOW:         _CalculateTime();
     case N2K_TX_GNSS:         _CreateN2kGNSS(N2kMsg); _n2k_state = N2K_TX_SATINFO; break;
@@ -253,7 +254,7 @@ void uBloxGNSS::_CalculateTime() {
   // create time_t form DD.MM.YYYY HH:MM:SS
   time_t gnss_time = makeTime(tm);
   _daysSince1970 = time_midnight / SECS_PER_DAY;
-  _secondsSinceMidnight = (double)(gnss_time-time_midnight) + _packet_ubxNavPVT.nano * 1e-6;
+  _secondsSinceMidnight = (double)(gnss_time-time_midnight) + _packet_ubxNavPVT.nano * 1e-9;
   _decimalYear = (double)_packet_ubxNavPVT.year + (double)(gnss_time - time_year) / SECS_PER_YEAR;
 }
 
@@ -282,11 +283,14 @@ bool uBloxGNSS::_CreateN2kGNSS(tN2kMsg &N2kMsg) {
 }
 
 bool uBloxGNSS::_CreateN2kCOGSOGRapid(tN2kMsg &N2kMsg) {
+  double cog = _packet_ubxNavPVT.headMot * 1e-5;
+  if(cog<0)
+    cog += 360;
   SetN2kCOGSOGRapid(
     N2kMsg,
     _SID, // sid
     N2khr_true,
-    DegToRad(_packet_ubxNavPVT.headMot * 1e-5),   // course over ground (rad)
+    DegToRad(cog),   // course over ground (rad)
     _packet_ubxNavPVT.gSpeed * 1e-3              // speed over ground (m/s)
     );
   return true;

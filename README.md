@@ -37,7 +37,7 @@ Set sampling rate to 200 ms, navigation ratio to 1 for 5 Hz refresh rate.
 Added WMM2015 magnetic variation calculation based on code from NOAA (legacy c code, restructured for arduino)
 Uses python script (utils/MagDevGenerator.py) to read coefficents-file (utils/WMM2015/WMM.cof) which can be 
 downloaded from NOAA. Precalculations are then performed and it generates c++ code for the tables needed for
-model calculations and outputs into "WMM2016cof.h"
+model calculations and outputs into "WMM2015cof.h"
 
 Results from arduino code is equal to WMM2015 test-values
 output:

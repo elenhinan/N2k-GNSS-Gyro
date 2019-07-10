@@ -13,6 +13,11 @@
 //#include <Adafruit_BNO055.h>
 //#include "imu.h"
 
+
+// USB: Serial
+// GPS: Serial1
+// DBG: Serial2
+// BT:  Serial3
 #define ActisenseUART Serial
 #define ActisenseBaud 115200
 #define UbloxUART     Serial1

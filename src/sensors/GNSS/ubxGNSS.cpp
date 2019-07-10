@@ -2,14 +2,19 @@
 #include "tools/MagneticVariation.h"
 
 uBloxGNSS::uBloxGNSS() :
+  _ubxHeaderBuffer(0x0000),
   _SID(0),
   _last_iTOW(0),
-  _ubxHeaderBuffer(0x0000),
+  _last_LATLONRAPID(0),
+  _last_COGSOGRAPID(0),
+  _last_GNSS(0),
+  _last_SATINFO(0),
+  _last_SYSTIME(0),
+  _last_DOPDATA(0),
+  _last_MAGVAR(0),
   _rx_state(UBX_RX_CLEANUP),
   _n2k_state(N2K_TX_IDLE),
   _serialActivityTimeout(50),
-  _SlowTimer(slowRatio),
-  _SlowIntervall(slowRatio),
   _declination(0)
 {
   _debugStream = NULL;
@@ -173,17 +178,15 @@ void uBloxGNSS::ParseMessages() {
       _debugStream->println("UBX_RX_NEWEPOCH");
       if(_packet_ubxNavEOE.iTOW - _last_iTOW > 0 && _packet_ubxNavEOE.isValid()) {
         _last_iTOW = _packet_ubxNavEOE.iTOW;
+        _current_eoe_time = millis();
         _SID = ++_SID>252?0:_SID; // increment _SID but stay in [0-252] range
 
         if(_packet_ubxNavPVT.isValid()) { // send rapid msg if valid PVT data
-          _n2k_state = N2K_TX_RAPID;
+          _CalculateTime();
         }
-        if(!--_SlowTimer) { // check if Slow send interval has passed since last time
-          _SlowTimer = _SlowIntervall;
-          if(_packet_ubxNavPVT.isValid() && _packet_ubxNavSat.isValid() && _packet_ubxNavDOP.isValid()) {
-            _n2k_state = N2K_TX_SLOW;
-          }
-        }
+
+        _n2k_state = N2K_TX_START;
+
       }
       _rx_state = UBX_RX_CLEANUP;
     
@@ -195,42 +198,20 @@ void uBloxGNSS::ParseMessages() {
 void uBloxGNSS::N2kMsgGet(tN2kMsg &N2kMsg) {
   // insert if statements to break if successfull, if not go to next
   switch(_n2k_state) {
-    case N2K_TX_SLOW:         _CalculateTime();
-    case N2K_TX_GNSS:         _CreateN2kGNSS(N2kMsg); _n2k_state = N2K_TX_SATINFO; break;
-    case N2K_TX_SATINFO:      _CreateN2kSatInfo(N2kMsg); _n2k_state = N2K_TX_SYSTIME; break;
-    case N2K_TX_SYSTIME:      _CreateN2kSystemTime(N2kMsg); _n2k_state = N2K_TX_DOPDATA; break;
-    case N2K_TX_DOPDATA:      _CreateN2kGNSSDOPData(N2kMsg); _n2k_state = N2K_TX_MAGVAR; break;
-    case N2K_TX_MAGVAR:       _CreateN2kMagneticVariation(N2kMsg); _n2k_state = N2K_TX_LATLONRAPID; break;
-    case N2K_TX_RAPID:
-    case N2K_TX_LATLONRAPID:  _CreateN2kLatLonRapid(N2kMsg); _n2k_state = N2K_TX_COGSOGRAPID; break;
-    case N2K_TX_COGSOGRAPID:  _CreateN2kCOGSOGRapid(N2kMsg); _n2k_state = N2K_TX_IDLE; break;
-    default: break;
+    case N2K_TX_START:         
+    case N2K_TX_LATLONRAPID:  if (_CreateN2kLatLonRapid(N2kMsg)); {_n2k_state = N2K_TX_COGSOGRAPID; break;}
+    case N2K_TX_COGSOGRAPID:  if (_CreateN2kCOGSOGRapid(N2kMsg)); {_n2k_state = N2K_TX_GNSS; break;}
+    case N2K_TX_GNSS:         if (_CreateN2kGNSS(N2kMsg)) { _n2k_state = N2K_TX_SATINFO; break;}
+    case N2K_TX_SATINFO:      if (_CreateN2kSatInfo(N2kMsg)) {_n2k_state = N2K_TX_SYSTIME; break;}
+    case N2K_TX_SYSTIME:      if (_CreateN2kSystemTime(N2kMsg)); {_n2k_state = N2K_TX_DOPDATA; break;}
+    case N2K_TX_DOPDATA:      if (_CreateN2kGNSSDOPData(N2kMsg)); {_n2k_state = N2K_TX_MAGVAR; break;}
+    case N2K_TX_MAGVAR:       if (_CreateN2kMagneticVariation(N2kMsg)); {_n2k_state = N2K_TX_IDLE; break;}
+    default:                  _n2k_state = N2K_TX_IDLE; break;
   }
 }
 
 bool uBloxGNSS::N2kMsgAvailable() {
   return _n2k_state != N2K_TX_IDLE;
-}
-
-bool uBloxGNSS::_CreateN2kSatInfo(tN2kMsg &N2kMsg) {
-  // todo: only send sats in use.
-  uint8_t numSvs = min(16,_packet_ubxNavSat.numSvs); // more than 20 SVs will create too large a N2kMsg
-  SetN2kGNSSSatsInView(N2kMsg, _SID, numSvs);
-  for(uint8_t i=0; i<numSvs; i++)
-  {
-    ubxSat_t SV = _packet_ubxNavSat.Svs[i];
-
-    AppendN2kGNSSSatsInView(
-      N2kMsg,
-      SV.svId,
-      DegToRad(SV.elev),
-      DegToRad(SV.azim),
-      (double)SV.cno*1e-1,
-      (double)SV.prRes,
-      _UbxToN2kSvStatus(SV.flags)
-    );
-  }
-  return true;
 }
 
 void uBloxGNSS::_CalculateTime() {
@@ -258,11 +239,43 @@ void uBloxGNSS::_CalculateTime() {
   _decimalYear = (double)_packet_ubxNavPVT.year + (double)(gnss_time - time_year) / SECS_PER_YEAR;
 }
 
-// void uBloxGNSS::_CalculateVariation() {
+bool uBloxGNSS::_CreateN2kSatInfo(tN2kMsg &N2kMsg) {
+  if(
+      _current_eoe_time - _last_SATINFO < _interval_SATINFO - 100 ||
+      !_packet_ubxNavSat.isValid() ||
+      !_interval_SATINFO
+    ) return false;
+  _last_SATINFO = _current_eoe_time;
 
-// }
+  // todo: only send sats in use.  
+  uint8_t numSvs = min(16,_packet_ubxNavSat.numSvs); // more than 20 SVs will create too large a N2kMsg
+  SetN2kGNSSSatsInView(N2kMsg, _SID, numSvs);
+  for(uint8_t i=0; i<numSvs; i++)
+  {
+    ubxSat_t SV = _packet_ubxNavSat.Svs[i];
+
+    AppendN2kGNSSSatsInView(
+      N2kMsg,
+      SV.svId,
+      DegToRad(SV.elev),
+      DegToRad(SV.azim),
+      (double)SV.cno*1e-1,
+      (double)SV.prRes,
+      _UbxToN2kSvStatus(SV.flags)
+    );
+  }
+  return true;
+}
 
 bool uBloxGNSS::_CreateN2kGNSS(tN2kMsg &N2kMsg) {
+  if(
+      _current_eoe_time - _last_GNSS < _interval_GNSS - 100 ||
+      !_packet_ubxNavPVT.isValid() ||
+      !_packet_ubxNavDOP.isValid() ||
+      !_interval_GNSS
+    ) return false;
+  _last_GNSS = _current_eoe_time;
+
   // prepare and send N2kMsg GNSS
   SetN2kGNSS(
     N2kMsg,           // msg
@@ -283,6 +296,13 @@ bool uBloxGNSS::_CreateN2kGNSS(tN2kMsg &N2kMsg) {
 }
 
 bool uBloxGNSS::_CreateN2kCOGSOGRapid(tN2kMsg &N2kMsg) {
+  if(
+      _current_eoe_time - _last_COGSOGRAPID < _interval_COGSOGRAPID - 100 ||
+      !_packet_ubxNavPVT.isValid() ||
+      !_interval_COGSOGRAPID
+    ) return false;
+  _last_COGSOGRAPID = _current_eoe_time;
+
   double cog = _packet_ubxNavPVT.headMot * 1e-5;
   if(cog<0)
     cog += 360;
@@ -297,6 +317,13 @@ bool uBloxGNSS::_CreateN2kCOGSOGRapid(tN2kMsg &N2kMsg) {
 }
 
 bool uBloxGNSS::_CreateN2kLatLonRapid(tN2kMsg &N2kMsg) {
+  if(
+      _current_eoe_time - _last_LATLONRAPID < _interval_LATLONRAPID - 100 ||
+      !_packet_ubxNavPVT.isValid() ||
+      !_interval_LATLONRAPID
+    ) return false;
+  _last_LATLONRAPID = _current_eoe_time;
+
   SetN2kLatLonRapid(
     N2kMsg,
     (double)_packet_ubxNavPVT.lat * 1e-7,  // latitude
@@ -306,6 +333,13 @@ bool uBloxGNSS::_CreateN2kLatLonRapid(tN2kMsg &N2kMsg) {
 }
 
 bool uBloxGNSS::_CreateN2kSystemTime(tN2kMsg &N2kMsg) {
+  if(
+      _current_eoe_time - _last_SYSTIME < _interval_SYSTIME - 100 ||
+      !_packet_ubxNavPVT.isValid() ||
+      !_interval_SYSTIME
+    ) return false;
+  _last_SYSTIME = _current_eoe_time;
+
   SetN2kSystemTime(
     N2kMsg,
     _SID,
@@ -316,6 +350,14 @@ bool uBloxGNSS::_CreateN2kSystemTime(tN2kMsg &N2kMsg) {
 }
   
 bool uBloxGNSS::_CreateN2kGNSSDOPData(tN2kMsg &N2kMsg) {
+  if(
+      _current_eoe_time - _last_DOPDATA < _interval_DOPDATA - 100 ||
+      !_packet_ubxNavDOP.isValid() ||
+      !_packet_ubxNavPVT.isValid() ||
+      !_interval_DOPDATA
+    ) return false;
+  _last_DOPDATA = _current_eoe_time;
+
   tN2kGNSSDOPmode actualMode;
   switch(_packet_ubxNavPVT.fixType) {
     case fix_2d: actualMode = N2kGNSSdm_2D; break;
@@ -336,8 +378,18 @@ bool uBloxGNSS::_CreateN2kGNSSDOPData(tN2kMsg &N2kMsg) {
 }
 
 bool uBloxGNSS::_CreateN2kMagneticVariation(tN2kMsg &N2kMsg) {
+  if(
+      _current_eoe_time - _last_MAGVAR < _interval_MAGVAR - 100 ||
+      !_packet_ubxNavPVT.isValid() ||
+      !_interval_MAGVAR
+    ) return false;
+  _last_MAGVAR = _current_eoe_time;
+
   double dip, ti, gv;
   bool valid = MagneticVariation(altitude(), latitude(), longitude(), _decimalYear, _declination, dip, ti, gv);
-  SetN2kMagneticVariation(N2kMsg, _SID, N2kmagvar_WMM2015, _daysSince1970, DEG_TO_RAD * _declination);
-  return true;
+  if (valid) {
+    SetN2kMagneticVariation(N2kMsg, _SID, N2kmagvar_WMM2015, _daysSince1970, DEG_TO_RAD * _declination);
+    return true;
+  }
+  return false;
 }

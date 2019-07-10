@@ -11,7 +11,7 @@ uBloxGNSS ubxGNSS;
 void setup()
 {
   pinMode(BT_EN, OUTPUT);
-  digitalWrite(BT_EN, HIGH);
+  digitalWrite(BT_EN, LOW);
 
   ActisenseUART.begin(ActisenseBaud);
   UbloxUART.begin(UbloxBaud);
@@ -202,7 +202,7 @@ void loop()
   NMEA2000.ParseMessages();
   ActisenseReader.ParseMessages();
   ubxGNSS.ParseMessages();
-  if(ubxGNSS.N2kMsgAvailable()) { // if N2kMsg available
+  while(ubxGNSS.N2kMsgAvailable()) { // if N2kMsg available
     tN2kMsg N2kMsg;
     ubxGNSS.N2kMsgGet(N2kMsg);
     NMEA2000.SendMsg(N2kMsg);
